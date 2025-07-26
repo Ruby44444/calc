@@ -8,8 +8,10 @@ use serde::{Deserialize, Serialize};
 struct GenderRatio {
     #[serde(rename = "M")]
     m: Option<f32>,
-    #[serde(rename = "f")]
+    #[serde(rename = "F")]
     f: Option<f32>,
+    #[serde(rename = "N")]
+    n: Option<char>
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -40,19 +42,28 @@ struct Pokemon {
     num: u32,
     name: String,
     types: Vec<String>,
+    gender: Option<char>,
     gender_ratio: GenderRatio,
     base_stats: BaseStats,
     abilities: Abilites,
     heightm: u32,
     weightkg: u32,
     color: String,
-    prevo: String,
-    
+    prevo: Option<String>,
+    #[serde(rename = "evoLevel")]
+    evo_level: u32,
+    evos: Option<Vec<String>>,
+    egg_group: Vec<String>,
+    tags: Option<Vec<String>>,
+    #[serde(rename = "otherFormes")]
+    other_formes: Option<Vec<String>>,
+    #[serde(rename = "formeOrder")]
+    forme_order: Option<Vec<String>>,
+    tier: String,
 }
 
 fn get_stat(){
-    let mut file = File::open("../pokedex.json").expect("Erreur json");
-    let mut contents = String::new();
-    file.read_to_string(&mut contents).expect("Erreur json 2");
-    let res = from_str::<Pokemon>(&contents);
+    let mut json = std::fs::read_to_string("../pokedex.json").unwrap();
+    let pokemons = from_str::<Pokemon>(&json);
+
 }
