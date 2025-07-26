@@ -1,7 +1,8 @@
-use std::fs::File;
+use std::error::Error;
+use std::{fs::File, io::BufReader};
 use std::io::prelude::*;
 use std::vec;
-use serde_json::from_str;
+use serde_json::{from_str};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -38,32 +39,28 @@ struct Abilites {
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-struct Pokemon {
-    num: u32,
+pub struct Pokemon {
+    num: i32,
     name: String,
-    types: Vec<String>,
-    gender: Option<char>,
-    gender_ratio: GenderRatio,
+    types: serde_json::Value,
+    #[serde(rename = "baseStats")]
     base_stats: BaseStats,
-    abilities: Abilites,
-    heightm: u32,
-    weightkg: u32,
-    color: String,
-    prevo: Option<String>,
-    #[serde(rename = "evoLevel")]
-    evo_level: u32,
-    evos: Option<Vec<String>>,
-    egg_group: Vec<String>,
-    tags: Option<Vec<String>>,
+    abilities: Option<Abilites>,
+    weightkg: i32,
+    #[serde(rename = "eggGroups")]
+    egggroups: serde_json::Value,
+    tags: serde_json::Value,
     #[serde(rename = "otherFormes")]
-    other_formes: Option<Vec<String>>,
-    #[serde(rename = "formeOrder")]
-    forme_order: Option<Vec<String>>,
-    tier: String,
+    other_formes: serde_json::Value,
+
 }
 
-fn get_stat(){
-    let mut json = std::fs::read_to_string("../pokedex.json").unwrap();
-    let pokemons = from_str::<Pokemon>(&json);
+pub fn get_stat() -> Result<Pokemon, Box<dyn Error>> {
 
+    let file = File::open("pokedex.json").expect("Unable to open the file");
+    let reader = BufReader::new(file);
+
+    let data: Pokemon = serde_json::from_reader(reader)?;
+
+    Ok(data)
 }
