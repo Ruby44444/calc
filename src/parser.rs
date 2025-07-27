@@ -67,25 +67,54 @@ pub struct Pokemon {
     #[serde(rename = "baseStats")]
     base_stats: BaseStats,
     abilities: Option<Abilites>,
-    weightkg: i32,
+    weightkg: f32,
+    evos: Option<serde_json::Value>,
     #[serde(rename = "eggGroups")]
     egggroups: serde_json::Value,
     #[serde(rename = "requiredAbility")]
-    required_ability: serde_json::Value,
+    required_ability: Option<serde_json::Value>,
     #[serde(rename = "battleOnly")]
     battle_only: Option<serde_json::Value>,
     tags: Option<serde_json::Value>,
     #[serde(rename = "otherFormes")]
-    other_formes: serde_json::Value,
+    other_formes: Option<serde_json::Value>,
 
 }
 
-pub fn get_data_mon(name: String) -> Result<Value, Box<dyn Error>> {
+pub fn get_data_mon(name: String) -> Result<Pokemon, Box< dyn Error>> {
 
-    let file = File::open("data/species.json").expect("Unable to open the file");
-    let reader = BufReader::new(file);
+    let file: File = File::open("data/species.json").expect("Unable to open the file");
+    let reader: BufReader<File> = BufReader::new(file);
 
     let data: serde_json::Value = serde_json::from_reader(reader)?;
-    let pokemon = &data["9"][name];
-    Ok(pokemon.clone())
+    let filtered_data: &Value = &data["9"][name];
+
+    let pokemon_filtered = Pokemon {
+        num: filtered_data["num"].to_string().parse::<i32>()?,
+        name: filtered_data["name"].to_string(),
+        types: filtered_data["types"].clone(),
+        base_stats: BaseStats { 
+            hp: filtered_data["baseStats"]["hp"].to_string().parse::<u32>()?, 
+            atk: filtered_data["baseStats"]["atk"].to_string().parse::<u32>()?, 
+            def: filtered_data["baseStats"]["def"].to_string().parse::<u32>()?, 
+            spa: filtered_data["baseStats"]["spa"].to_string().parse::<u32>()?, 
+            spd: filtered_data["baseStats"]["spd"].to_string().parse::<u32>()?, 
+            spe: filtered_data["baseStats"]["spe"].to_string().parse::<u32>()? 
+        },
+        abilities: Some(Abilites {
+            first: filtered_data["abilities"]["0"].to_string(),
+            second: Some(filtered_data["abilities"].get("1").expect("No Second Ability").to_string()),
+            hidden: Some(filtered_data["abilities"].get("H").expect("No Hidden Ability").to_string()),
+            secret: Some(filtered_data["abilities"].get("S").expect("No Secret Ability").to_string()),
+        }),
+        weightkg: filtered_data["weightkg"].to_string().parse::<f32>()?,
+        evos: filtered_data.get("evos").cloned(),
+        egggroups: filtered_data.get("eggGroups").expect("No Egg Group").clone(),
+        required_ability: filtered_data.get("requiredAbility").cloned(),
+        battle_only: filtered_data.get("battleOnly").cloned(),
+        tags: filtered_data.get("tags").cloned(),
+        other_formes: filtered_data.get("battleOnly").cloned()
+    };
+    Ok(pokemon_filtered)
 }
+
