@@ -37,25 +37,9 @@ struct Abilites {
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-pub struct Generation {
-    #[serde(rename = "1")]
-    a: Vec<Pokemon>,
-    #[serde(rename = "2")]
-    b: Vec<Pokemon>,
-    #[serde(rename = "3")]
-    c: Vec<Pokemon>,
-    #[serde(rename = "4")]
-    d: Vec<Pokemon>,
-    #[serde(rename = "5")]
-    e: Vec<Pokemon>,
-    #[serde(rename = "6")]
-    f: Vec<Pokemon>,
-    #[serde(rename = "7")]
-    g: Vec<Pokemon>,
-    #[serde(rename = "8")]
-    h: Vec<Pokemon>,
-    #[serde(rename = "9")]
-    i: Vec<Pokemon>,
+pub struct Types {
+    type1: String,
+    type2: Option<String>
 }
 
 
@@ -63,10 +47,10 @@ pub struct Generation {
 pub struct Pokemon {
     num: i32,
     name: String,
-    types: serde_json::Value,
+    types: Types,
     #[serde(rename = "baseStats")]
     base_stats: BaseStats,
-    abilities: Option<Abilites>,
+    abilities: Abilites,
     weightkg: f32,
     evos: Option<serde_json::Value>,
     #[serde(rename = "eggGroups")]
@@ -81,7 +65,7 @@ pub struct Pokemon {
 
 }
 
-pub fn get_data_mon(name: String) -> Result<Pokemon, Box< dyn Error>> {
+pub fn get_data_mon(name: &String) -> Result<Pokemon, Box< dyn Error>> {
 
     let file: File = File::open("data/species.json").expect("Unable to open the file");
     let reader: BufReader<File> = BufReader::new(file);
@@ -91,8 +75,14 @@ pub fn get_data_mon(name: String) -> Result<Pokemon, Box< dyn Error>> {
 
     let pokemon_filtered = Pokemon {
         num: filtered_data["num"].to_string().parse::<i32>()?,
-        name: filtered_data["name"].to_string(),
-        types: filtered_data["types"].clone(),
+        name: filtered_data["name"].to_string().replace("\"", ""),
+        types: Types { 
+            type1: filtered_data["types"][0].to_string().replace("\"", ""), 
+            type2: {
+                let second_type = filtered_data["types"].get(1);
+                second_type.map(|val| val.to_string().replace("\"", ""))
+            }
+        },
         base_stats: BaseStats { 
             hp: filtered_data["baseStats"]["hp"].to_string().parse::<u32>()?, 
             atk: filtered_data["baseStats"]["atk"].to_string().parse::<u32>()?, 
@@ -101,12 +91,21 @@ pub fn get_data_mon(name: String) -> Result<Pokemon, Box< dyn Error>> {
             spd: filtered_data["baseStats"]["spd"].to_string().parse::<u32>()?, 
             spe: filtered_data["baseStats"]["spe"].to_string().parse::<u32>()? 
         },
-        abilities: Some(Abilites {
-            first: filtered_data["abilities"]["0"].to_string(),
-            second: Some(filtered_data["abilities"].get("1").expect("No Second Ability").to_string()),
-            hidden: Some(filtered_data["abilities"].get("H").expect("No Hidden Ability").to_string()),
-            secret: Some(filtered_data["abilities"].get("S").expect("No Secret Ability").to_string()),
-        }),
+        abilities: Abilites {
+            first: filtered_data["abilities"]["0"].to_string().replace("\"", ""),
+            second: {
+                let second_ability = filtered_data["abilities"].get("1");
+                second_ability.map(|val| val.to_string().replace("\"", ""))
+            },
+            hidden: {
+                let hidden_ability = filtered_data["abilities"].get("H");
+                hidden_ability.map(|val| val.to_string().replace("\"", ""))
+            },
+            secret: {
+                let secret_ability = filtered_data["abilities"].get("1");
+                secret_ability.map(|val| val.to_string().replace("\"", ""))
+            },
+        },
         weightkg: filtered_data["weightkg"].to_string().parse::<f32>()?,
         evos: filtered_data.get("evos").cloned(),
         egggroups: filtered_data.get("eggGroups").expect("No Egg Group").clone(),
