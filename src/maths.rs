@@ -12,7 +12,7 @@ fn damage (level: f32, power: f32, atk: f32, def: f32, list: [f32; 12]) -> f32
 }
 
 #[allow(dead_code)]
-fn get_stat (name: String, base_stat: f32, ev: f32, iv: f32, level: f32, nature: f32) -> f32
+pub fn get_stat_number (name: String, base_stat: f32, ev: f32, iv: f32, level: f32, nature: f32) -> f32
 {
     let temp = ((2.0 * base_stat + iv + (ev/4.0).floor()) * level / 100.0).floor();
 

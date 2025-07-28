@@ -3,6 +3,17 @@ use std::{fs::File, io::BufReader};
 use serde_json::{Value};
 use serde::{Deserialize, Serialize};
 
+enum TypesStats {
+    Number(i32),
+    Name(String),
+    Types(Types),
+    Stats(BaseStats),
+    Abilities(Abilities),
+    Weight(f32),
+    //Need to add Evos, eggGroups, ...
+
+}
+
 #[derive(Deserialize, Serialize, Debug)]
 struct GenderRatio {
     #[serde(rename = "M")]
@@ -24,7 +35,7 @@ struct BaseStats {
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-struct Abilites {
+struct Abilities {
     #[serde(rename = "0")]
     first: String,
     #[serde(rename = "1")]
@@ -50,7 +61,7 @@ pub struct Pokemon {
     types: Types,
     #[serde(rename = "baseStats")]
     base_stats: BaseStats,
-    abilities: Abilites,
+    abilities: Abilities,
     weightkg: f32,
     evos: Option<serde_json::Value>,
     #[serde(rename = "eggGroups")]
@@ -91,7 +102,7 @@ pub fn get_data_mon(name: &String) -> Result<Pokemon, Box< dyn Error>> {
             spd: filtered_data["baseStats"]["spd"].to_string().parse::<u32>()?, 
             spe: filtered_data["baseStats"]["spe"].to_string().parse::<u32>()? 
         },
-        abilities: Abilites {
+        abilities: Abilities {
             first: filtered_data["abilities"]["0"].to_string().replace("\"", ""),
             second: {
                 let second_ability = filtered_data["abilities"].get("1");
@@ -117,3 +128,26 @@ pub fn get_data_mon(name: &String) -> Result<Pokemon, Box< dyn Error>> {
     Ok(pokemon_filtered)
 }
 
+pub fn get_base_stat(filtered: Result<Pokemon, Box<dyn Error>>, mut stat: String) -> u32 {
+    //!! Needs to check if the stat returned > 0
+    stat = stat.replace(" ", "").to_lowercase();
+
+    //Gets the base stat from the Pokémon according to it's arguments
+    let data: Result<u32, Box<dyn Error>> = match stat.as_str() { 
+        "hp" => filtered.map(|x: Pokemon| x.base_stats.hp),
+        "atk" => filtered.map(|x: Pokemon| x.base_stats.atk),
+        "def" => filtered.map(|x: Pokemon| x.base_stats.def),
+        "spa" => filtered.map(|x: Pokemon| x.base_stats.spa),
+        "spd" => filtered.map(|x: Pokemon| x.base_stats.spd),
+        "spe" => filtered.map(|x: Pokemon| x.base_stats.spe),
+        _ => filtered.map(|_x: Pokemon| 0)
+    };
+
+    let displayed_data:u32  = match &data {
+        Ok(i) => *i as u32,
+        Err(_) => 0
+    };
+    
+    return displayed_data
+
+}

@@ -1,8 +1,8 @@
 use std::io;
-
 use std::error::Error;
 
-use crate::parser::{get_data_mon, Pokemon};
+use crate::parser::{get_data_mon, get_base_stat, Pokemon};
+use crate::maths::{get_stat_number};
 
 mod maths;
 mod parser;
@@ -20,4 +20,7 @@ fn main() {
     
     let data_attacking_mon: Result<Pokemon, Box<dyn Error>> = get_data_mon(&name_attacking_mon);
     println!("{data_attacking_mon:#?}");
+    let stat = get_base_stat(data_attacking_mon, "hp".to_string());
+    println!("{stat}");
+    
 }
