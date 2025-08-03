@@ -12,12 +12,13 @@ const SPECIES: &'static str = include_str!("data/species.json");
 pub struct ParseStatError;
 
 #[derive(Debug, thiserror::Error)]
-pub enum ParseMonError {
-    #[error("Unknown Pokémon")]
-    Unknown,
-    #[error("Can't find stat {0}")]
-    MissingStat(String),
-}
+#[error("Unknown Pokémon {0}")]
+pub struct ParseMonError(pub String);
+
+#[derive(Debug, thiserror::Error)]
+#[error("Unknown type {0}")]
+pub struct ParseTypeError(pub String);
+
 pub enum BaseStatKind {
     Hp,
     Atk,
@@ -102,6 +103,58 @@ impl IndexMut<BaseStatKind> for BaseStats {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub enum MonType {
+    Normal,
+    Fire,
+    Water,
+    Electric,
+    Grass,
+    Ice,
+    Fighting,
+    Poison,
+    Ground,
+    Flying,
+    Psychic,
+    Bug,
+    Rock,
+    Ghost,
+    Dragon,
+    Dark,
+    Steel,
+    Fairy,
+    Stellar,
+}
+
+impl FromStr for MonType {
+    type Err = ParseTypeError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "normal" => Ok(Self::Normal),
+            "fire" => Ok(Self::Fire),
+            "water" => Ok(Self::Water),
+            "electric" => Ok(Self::Electric),
+            "grass" => Ok(Self::Grass),
+            "ice" => Ok(Self::Ice),
+            "fighting" => Ok(Self::Fighting),
+            "poison" => Ok(Self::Poison),
+            "ground" => Ok(Self::Ground),
+            "flying" => Ok(Self::Flying),
+            "psychic" => Ok(Self::Psychic),
+            "bug" => Ok(Self::Bug),
+            "rock" => Ok(Self::Rock),
+            "ghost" => Ok(Self::Ghost),
+            "dragon" => Ok(Self::Dragon),
+            "dark" => Ok(Self::Dark),
+            "steel" => Ok(Self::Steel),
+            "fairy" => Ok(Self::Fairy),
+            "stellar" => Ok(Self::Stellar),
+            _ => Err(ParseTypeError(s.to_string())),
+        }
+    }
+}
+
 #[derive(Deserialize, Serialize, Debug)]
 struct Abilities {
     #[serde(rename = "0")]
@@ -116,8 +169,8 @@ struct Abilities {
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Types {
-    type1: String,
-    type2: Option<String>,
+    type1: MonType,
+    type2: Option<MonType>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -131,7 +184,7 @@ pub struct Pokemon {
     weightkg: f32,
     evos: Option<serde_json::Value>,
     #[serde(rename = "eggGroups")]
-    egggroups: serde_json::Value,
+    egg_groups: serde_json::Value,
     #[serde(rename = "requiredAbility")]
     required_ability: Option<serde_json::Value>,
     #[serde(rename = "battleOnly")]
@@ -152,80 +205,21 @@ impl FromStr for Pokemon {
     type Err = ParseMonError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let data: serde_json::Value =
-            serde_json::from_str(SPECIES).map_err(|_| ParseMonError::Unknown)?;
-        let filtered_data: &Value = &data["9"][s];
+        let mut data = serde_json::from_str::<Value>(SPECIES)
+            .ok()
+            .and_then(|v| match v {
+                Value::Object(d) => Some(d),
+                _ => None,
+            })
+            .and_then(|mut v| v.remove("9"))
+            .and_then(|v| match v {
+                Value::Object(d) => Some(d),
+                _ => None,
+            })
+            .expect("data should an object");
 
-        let pokemon_filtered = Pokemon {
-            num: filtered_data["num"]
-                .to_string()
-                .parse()
-                .map_err(|_| ParseMonError::MissingStat("num".to_string()))?,
-            name: filtered_data["name"].to_string().replace("\"", ""),
-            types: Types {
-                type1: filtered_data["types"][0].to_string().replace("\"", ""),
-                type2: {
-                    let second_type = filtered_data["types"].get(1);
-                    second_type.map(|val| val.to_string().replace("\"", ""))
-                },
-            },
-            base_stats: BaseStats {
-                hp: filtered_data["baseStats"]["hp"]
-                    .to_string()
-                    .parse::<u32>()
-                    .map_err(|_| ParseMonError::MissingStat("hp".to_string()))?,
-                atk: filtered_data["baseStats"]["atk"]
-                    .to_string()
-                    .parse::<u32>()
-                    .map_err(|_| ParseMonError::MissingStat("atk".to_string()))?,
-                def: filtered_data["baseStats"]["def"]
-                    .to_string()
-                    .parse::<u32>()
-                    .map_err(|_| ParseMonError::MissingStat("def".to_string()))?,
-                spa: filtered_data["baseStats"]["spa"]
-                    .to_string()
-                    .parse::<u32>()
-                    .map_err(|_| ParseMonError::MissingStat("spa".to_string()))?,
-                spd: filtered_data["baseStats"]["spd"]
-                    .to_string()
-                    .parse::<u32>()
-                    .map_err(|_| ParseMonError::MissingStat("spd".to_string()))?,
-                spe: filtered_data["baseStats"]["spe"]
-                    .to_string()
-                    .parse::<u32>()
-                    .map_err(|_| ParseMonError::MissingStat("spe".to_string()))?,
-            },
-            abilities: Abilities {
-                first: filtered_data["abilities"]["0"]
-                    .to_string()
-                    .replace("\"", ""),
-                second: {
-                    let second_ability = filtered_data["abilities"].get("1");
-                    second_ability.map(|val| val.to_string().replace("\"", ""))
-                },
-                hidden: {
-                    let hidden_ability = filtered_data["abilities"].get("H");
-                    hidden_ability.map(|val| val.to_string().replace("\"", ""))
-                },
-                secret: {
-                    let secret_ability = filtered_data["abilities"].get("1");
-                    secret_ability.map(|val| val.to_string().replace("\"", ""))
-                },
-            },
-            weightkg: filtered_data["weightkg"]
-                .to_string()
-                .parse::<f32>()
-                .map_err(|_| ParseMonError::MissingStat("weightkg".to_string()))?,
-            evos: filtered_data.get("evos").cloned(),
-            egggroups: filtered_data
-                .get("eggGroups")
-                .expect("No Egg Group")
-                .clone(),
-            required_ability: filtered_data.get("requiredAbility").cloned(),
-            battle_only: filtered_data.get("battleOnly").cloned(),
-            tags: filtered_data.get("tags").cloned(),
-            other_formes: filtered_data.get("battleOnly").cloned(),
-        };
-        Ok(pokemon_filtered)
+        let mon_data = data.remove(s).ok_or(ParseMonError(s.to_string()))?;
+
+        Ok(serde_json::from_value(mon_data).expect("data should be a valid mon description"))
     }
 }
