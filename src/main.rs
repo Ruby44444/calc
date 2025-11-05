@@ -1,9 +1,9 @@
 mod maths;
 mod parser;
 
-use std::{io, os::macos::raw::stat, str::FromStr};
+use std::{io, os::linux::raw::stat, str::FromStr};
 
-use crate::{maths::{damage, get_stat_number}, parser::Pokemon};
+use crate::{maths::{damage, get_stat_number}, parser::{BaseStatKind, Pokemon}};
 
 
 fn main() -> anyhow::Result<()> {
@@ -32,12 +32,11 @@ fn main() -> anyhow::Result<()> {
     println!("{defending_mon:#?}");
     let stat_defense = defending_mon.get_base_stat("def".parse()?) as f32;
     println!("{stat_defense}");
-    println!("{}", get_stat_number("atk".to_string(), stat_atk, 252.0, 31.0, 100.0, 1.0));
+    println!("{}", get_stat_number(BaseStatKind::Atk, stat_atk, 252.0, 31.0, 100.0, 1.0));
 
     let damage = damage(100.0, 110.0, 
-                                    get_stat_number("atk".to_string(), stat_atk, 252.0, 31.0, 100.0, 1.0),
-                                    get_stat_number("def".to_string(), stat_defense, 0.0, 31.0, 100.0, 1.0), 
-                                    [1.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]);
+                                    get_stat_number(BaseStatKind::Atk, stat_atk, 252.0, 31.0, 100.0, 1.0),
+                                    get_stat_number(BaseStatKind::Def, stat_defense, 0.0, 31.0, 100.0, 1.0));
     println!("{damage:?}");
 
 

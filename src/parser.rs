@@ -19,6 +19,7 @@ pub struct ParseMonError(pub String);
 #[error("Unknown type {0}")]
 pub struct ParseTypeError(pub String);
 
+#[derive(PartialEq)]
 pub enum BaseStatKind {
     Hp,
     Atk,
@@ -196,8 +197,8 @@ pub struct Pokemon {
 
 impl Pokemon {
     ///Gets the base stat from the Pokémon according to it's arguments
-    pub fn get_base_stat(&self, stat: BaseStatKind) -> u32 {
-        self.base_stats[stat]
+    pub fn get_base_stat(&self, stat: BaseStatKind) -> f32 {
+        self.base_stats[stat] as f32
     }
 }
 
